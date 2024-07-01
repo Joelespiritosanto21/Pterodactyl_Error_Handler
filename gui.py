@@ -1,8 +1,10 @@
 import sys
 import json
-import requests
+import threading
 from PyQt5.QtWidgets import QApplication, QMainWindow, QLabel, QPushButton, QVBoxLayout, QWidget, QMessageBox, QTabWidget, QFormLayout, QLineEdit, QSpinBox
 from PyQt5.QtGui import QIntValidator
+from monitor import start_monitoring
+from web_app import start_web_server
 
 class MonitorGUI(QMainWindow):
     def __init__(self):
@@ -55,7 +57,7 @@ class MonitorGUI(QMainWindow):
         self.recipient_emails_input = QLineEdit(','.join(self.config.get('recipient_emails', [])))
         self.sender_email_input = QLineEdit(self.config.get('sender_email', ''))
         self.smtp_server_input = QLineEdit(self.config.get('smtp_server', ''))
-        self.smtp_port_input = QLineEdit(str(self.config.get('smtp_port', '587')))
+        self.smtp_port_input = QLineEdit(str(self.config.get('smtp_port', 587)))
         self.smtp_port_input.setValidator(QIntValidator(1, 999999))
         self.email_password_input = QLineEdit(self.config.get('email_password', ''))
         self.email_password_input.setEchoMode(QLineEdit.Password)
@@ -88,11 +90,11 @@ class MonitorGUI(QMainWindow):
             json.dump(config, config_file, indent=4)
 
     def start_monitoring(self):
-        # Start monitoring logic
         self.status_label.setText('Status: Monitoring...')
+        monitor_thread = threading.Thread(target=start_monitoring, args=(self.config,))
+        monitor_thread.start()
 
     def restart_services(self):
-        # Restart services logic
         try:
             response = requests.get(f"{self.config['panel_url']}/api/restart", headers={'Authorization': f"Bearer {self.config['api_token']}"})
             if response.status_code == 200:
@@ -116,7 +118,28 @@ class MonitorGUI(QMainWindow):
         self.save_config(self.config)
         QMessageBox.information(self, 'Settings Saved', 'Your settings have been saved.')
 
-if __name__ == '__main__':
+if __name__ == "__main__":
+
+    config = {
+        'panel_url': 'http://your_jexactyl_url',
+        'check_interval': 60,
+        'service_name': 'jexactyl',
+        'wing_name': 'jexactyl-wing',
+        'recipient_emails': ['your_email@example.com'],
+        'sender_email': 'your_sender_email@example.com',
+        'smtp_server': 'your_smtp_server',
+        'smtp_port': 587,
+        'email_password': 'your_email_password'
+    }
+    
+    # Iniciar o monitoramento em uma thread separada
+    monitor_thread = threading.Thread(target=start_monitoring, args=(config,))
+    monitor_thread.start()
+
+    # Iniciar o servidor Flask na thread principal
+    flask_thread = threading.Thread(target=start_web_server)
+    flask_thread.start()
+
     app = QApplication(sys.argv)
     ex = MonitorGUI()
     sys.exit(app.exec_())

@@ -4,48 +4,64 @@ import os
 
 app = Flask(__name__)
 
-CONFIG_FILE = 'config.json'
+config_path = 'config.json'
 
 def load_config():
-    with open(CONFIG_FILE, 'r') as config_file:
-        return json.load(config_file)
+    try:
+        with open(config_path, 'r') as config_file:
+            return json.load(config_file)
+    except FileNotFoundError:
+        return {}
 
 def save_config(config):
-    with open(CONFIG_FILE, 'w') as config_file:
+    with open(config_path, 'w') as config_file:
         json.dump(config, config_file, indent=4)
+
+def get_log_content():
+    if os.path.exists('monitor.log'):
+        with open('monitor.log', 'r') as log_file:
+            return log_file.read()
+    return "No logs available."
 
 @app.route('/')
 def index():
     config = load_config()
-    return render_template('index.html', config=config)
+    logs = get_log_content()
+    return render_template('index.html', config=config, logs=logs)
 
-@app.route('/update', methods=['POST'])
-def update_config():
-    config = load_config()
-    config['panel_url'] = request.form['panel_url']
-    config['check_interval'] = int(request.form['check_interval'])
-    config['service_name'] = request.form['service_name']
-    config['wing_name'] = request.form['wing_name']
-    config['recipient_emails'] = request.form['recipient_emails'].split(',')
-    config['sender_email'] = request.form['sender_email']
-    config['smtp_server'] = request.form['smtp_server']
-    config['smtp_port'] = int(request.form['smtp_port'])
-    config['email_password'] = request.form['email_password']
+@app.route('/save', methods=['POST'])
+def save():
+    config = {
+        'panel_url': request.form['panel_url'],
+        'check_interval': int(request.form['check_interval']),
+        'service_name': request.form['service_name'],
+        'wing_name': request.form['wing_name'],
+        'recipient_emails': request.form['recipient_emails'].split(','),
+        'sender_email': request.form['sender_email'],
+        'smtp_server': request.form['smtp_server'],
+        'smtp_port': int(request.form['smtp_port']),
+        'email_password': request.form['email_password']
+    }
     save_config(config)
     return redirect(url_for('index'))
 
-if __name__ == '__main__':
-    if not os.path.exists(CONFIG_FILE):
-        initial_config = {
-            'panel_url': '',
-            'check_interval': 60,
-            'service_name': '',
-            'wing_name': '',
-            'recipient_emails': [],
-            'sender_email': '',
-            'smtp_server': '',
-            'smtp_port': 587,
-            'email_password': ''
-        }
-        save_config(initial_config)
-    app.run(debug=True)
+def start_web_server():
+    # Use `0.0.0.0` se você precisa acessar a partir de outros dispositivos na rede
+    app.run(host='0.0.0.0', port=5000, debug=True)
+
+if __name__ == "__main__":
+    config = {
+        'panel_url': 'http://your_jexactyl_url',
+        'check_interval': 60,
+        'service_name': 'jexactyl',
+        'wing_name': 'jexactyl-wing',
+        'recipient_emails': ['your_email@example.com'],
+        'sender_email': 'your_sender_email@example.com',
+        'smtp_server': 'your_smtp_server',
+        'smtp_port': 587,
+        'email_password': 'your_email_password'
+    }
+    save_config(config)
+
+    # Iniciar o servidor Flask
+    start_web_server()

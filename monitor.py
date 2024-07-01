@@ -1,63 +1,50 @@
-import json
-import requests
 import time
+import requests
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
-def load_config():
-    with open('config.json', 'r') as config_file:
-        return json.load(config_file)
-
-def send_email(subject, body, config):
+def send_email(config, subject, body):
     msg = MIMEMultipart()
     msg['From'] = config['sender_email']
     msg['To'] = ", ".join(config['recipient_emails'])
     msg['Subject'] = subject
+
     msg.attach(MIMEText(body, 'plain'))
 
-    with smtplib.SMTP(config['smtp_server'], config['smtp_port']) as server:
-        server.starttls()
-        server.login(config['sender_email'], config['email_password'])
-        server.send_message(msg)
-
-def check_status(config):
     try:
-        response = requests.get(config['panel_url'])
-        if response.status_code == 200:
-            return True
-        else:
-            return False
+        with smtplib.SMTP(config['smtp_server'], config['smtp_port']) as server:
+            server.starttls()
+            server.login(config['sender_email'], config['email_password'])
+            server.send_message(msg)
+        log_message("Email sent successfully.")
     except Exception as e:
-        print(f"Error checking status: {e}")
-        return False
-
-def clear_cache(config):
-    try:
-        response = requests.get(f"{config['panel_url']}/api/clear-cache", headers={'Authorization': f"Bearer {config['api_token']}"})
-        return response.status_code == 200
-    except Exception as e:
-        print(f"Error clearing cache: {e}")
-        return False
+        log_message(f"Failed to send email: {e}")
 
 def restart_services(config):
-    try:
-        response = requests.get(f"{config['panel_url']}/api/restart", headers={'Authorization': f"Bearer {config['api_token']}"})
-        return response.status_code == 200
-    except Exception as e:
-        print(f"Error restarting services: {e}")
-        return False
+    log_message("Restarting Jexactyl services...")
+    subject = "Jexactyl Services Restarted"
+    body = "The Jexactyl services were restarted due to an error or unresponsive state."
+    send_email(config, subject, body)
 
-def main():
-    config = load_config()
+def check_jexactyl_status(config):
     while True:
-        if not check_status(config):
-            send_email('Jexactyl Panel Down', 'The Jexactyl panel is not responding. Attempting to clear cache and restart services.', config)
-            if clear_cache(config) and restart_services(config):
-                send_email('Jexactyl Services Restarted', 'The Jexactyl panel services have been successfully restarted.', config)
+        try:
+            response = requests.get(config['panel_url'])
+            if response.status_code == 200:
+                log_message("Jexactyl is running smoothly.")
             else:
-                send_email('Jexactyl Services Restart Failed', 'Failed to restart Jexactyl panel services.', config)
-        time.sleep(config['check_interval'])
+                log_message("Jexactyl seems to be having issues.")
+                restart_services(config)
+        except requests.RequestException as e:
+            log_message(f"Error connecting to Jexactyl: {e}")
+            restart_services(config)
+        time.sleep(config.get('check_interval', 60))
 
-if __name__ == "__main__":
-    main()
+def start_monitoring(config):
+    log_message("Monitoring started.")
+    check_jexactyl_status(config)
+
+def log_message(message):
+    with open('monitor.log', 'a') as log_file:
+        log_file.write(f"{time.strftime('%Y-%m-%d %H:%M:%S')} - {message}\n")
