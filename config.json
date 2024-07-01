@@ -1,0 +1,13 @@
+{
+    "panel_url": "http://localhost:port",
+    "check_interval": 10,
+    "service_name": "jexactyl_service_name",
+    "wing_name": "wing_service_name",
+    "recipient_emails": [
+        "admin@example.com"
+    ],
+    "sender_email": "monitor@example.com",
+    "smtp_server": "smtp.example.com",
+    "smtp_port": 465,
+    "email_password": "your_email_password"
+}

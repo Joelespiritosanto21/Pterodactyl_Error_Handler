@@ -1,119 +1,122 @@
-import tkinter as tk
-from tkinter import messagebox, ttk
-from config_manager import load_config, save_config
-from monitor import check_service, restart_service
+import sys
+import json
+import requests
+from PyQt5.QtWidgets import QApplication, QMainWindow, QLabel, QPushButton, QVBoxLayout, QWidget, QMessageBox, QTabWidget, QFormLayout, QLineEdit, QSpinBox
+from PyQt5.QtGui import QIntValidator
 
-config = load_config()
+class MonitorGUI(QMainWindow):
+    def __init__(self):
+        super().__init__()
 
-def start_monitoring():
-    monitor()
-    messagebox.showinfo("Monitoring", "Monitoring started")
+        self.config = self.load_config()
+        self.initUI()
 
-def restart_services():
-    restart_service(config['service_name'])
-    restart_service(config['wing_name'])
-    messagebox.showinfo("Services", "Services restarted")
+    def initUI(self):
+        self.setWindowTitle('Jexactyl Monitor')
 
-def update_status():
-    status = "Functioning" if check_service(config['panel_url']) else "Failed"
-    status_label.config(text=f"Status: {status}")
-    root.after(5000, update_status)
+        self.tabs = QTabWidget()
+        self.setCentralWidget(self.tabs)
 
-def save_settings():
-    config['panel_url'] = panel_url_entry.get()
-    config['check_interval'] = int(check_interval_entry.get())
-    config['service_name'] = service_name_entry.get()
-    config['wing_name'] = wing_name_entry.get()
-    config['recipient_emails'] = recipient_emails_entry.get().split(',')
-    config['sender_email'] = sender_email_entry.get()
-    config['smtp_server'] = smtp_server_entry.get()
-    config['smtp_port'] = int(smtp_port_entry.get())
-    config['email_password'] = email_password_entry.get()
-    save_config(config)
-    messagebox.showinfo("Settings", "Settings saved successfully")
+        self.status_tab = QWidget()
+        self.config_tab = QWidget()
 
-root = tk.Tk()
-root.title("Jexactyl Monitor")
+        self.tabs.addTab(self.status_tab, "Status")
+        self.tabs.addTab(self.config_tab, "Settings")
 
-notebook = ttk.Notebook(root)
-notebook.pack(pady=10, expand=True)
+        self.init_status_tab()
+        self.init_config_tab()
 
-# Monitor tab
-monitor_frame = ttk.Frame(notebook, width=400, height=280)
-monitor_frame.pack(fill='both', expand=True)
+        self.show()
 
-status_label = tk.Label(monitor_frame, text="Status: Unknown", font=("Arial", 14))
-status_label.pack(pady=10)
+    def init_status_tab(self):
+        layout = QVBoxLayout()
 
-start_button = tk.Button(monitor_frame, text="Start Monitoring", command=start_monitoring, font=("Arial", 12))
-start_button.pack(pady=5)
+        self.status_label = QLabel('Status: Unknown', self)
+        self.start_button = QPushButton('Start Monitoring', self)
+        self.start_button.clicked.connect(self.start_monitoring)
 
-restart_button = tk.Button(monitor_frame, text="Restart Services", command=restart_services, font=("Arial", 12))
-restart_button.pack(pady=5)
+        self.restart_button = QPushButton('Restart Services', self)
+        self.restart_button.clicked.connect(self.restart_services)
 
-# Settings tab
-settings_frame = ttk.Frame(notebook, width=400, height=280)
-settings_frame.pack(fill='both', expand=True)
+        layout.addWidget(self.status_label)
+        layout.addWidget(self.start_button)
+        layout.addWidget(self.restart_button)
 
-panel_url_label = tk.Label(settings_frame, text="Panel URL")
-panel_url_label.pack(pady=5)
-panel_url_entry = tk.Entry(settings_frame)
-panel_url_entry.pack(pady=5)
-panel_url_entry.insert(0, config['panel_url'])
+        self.status_tab.setLayout(layout)
 
-check_interval_label = tk.Label(settings_frame, text="Check Interval")
-check_interval_label.pack(pady=5)
-check_interval_entry = tk.Entry(settings_frame)
-check_interval_entry.pack(pady=5)
-check_interval_entry.insert(0, config['check_interval'])
+    def init_config_tab(self):
+        layout = QFormLayout()
 
-service_name_label = tk.Label(settings_frame, text="Service Name")
-service_name_label.pack(pady=5)
-service_name_entry = tk.Entry(settings_frame)
-service_name_entry.pack(pady=5)
-service_name_entry.insert(0, config['service_name'])
+        self.panel_url_input = QLineEdit(self.config.get('panel_url', ''))
+        self.check_interval_input = QSpinBox()
+        self.check_interval_input.setValue(self.config.get('check_interval', 60))
+        self.service_name_input = QLineEdit(self.config.get('service_name', ''))
+        self.wing_name_input = QLineEdit(self.config.get('wing_name', ''))
+        self.recipient_emails_input = QLineEdit(','.join(self.config.get('recipient_emails', [])))
+        self.sender_email_input = QLineEdit(self.config.get('sender_email', ''))
+        self.smtp_server_input = QLineEdit(self.config.get('smtp_server', ''))
+        self.smtp_port_input = QLineEdit(str(self.config.get('smtp_port', '587')))
+        self.smtp_port_input.setValidator(QIntValidator(1, 999999))
+        self.email_password_input = QLineEdit(self.config.get('email_password', ''))
+        self.email_password_input.setEchoMode(QLineEdit.Password)
 
-wing_name_label = tk.Label(settings_frame, text="Wing Name")
-wing_name_label.pack(pady=5)
-wing_name_entry = tk.Entry(settings_frame)
-wing_name_entry.pack(pady=5)
-wing_name_entry.insert(0, config['wing_name'])
+        save_button = QPushButton('Save Settings')
+        save_button.clicked.connect(self.save_settings)
 
-recipient_emails_label = tk.Label(settings_frame, text="Recipient Emails")
-recipient_emails_label.pack(pady=5)
-recipient_emails_entry = tk.Entry(settings_frame)
-recipient_emails_entry.pack(pady=5)
-recipient_emails_entry.insert(0, ','.join(config['recipient_emails']))
+        layout.addRow('Panel URL:', self.panel_url_input)
+        layout.addRow('Check Interval (seconds):', self.check_interval_input)
+        layout.addRow('Service Name:', self.service_name_input)
+        layout.addRow('Wing Name:', self.wing_name_input)
+        layout.addRow('Recipient Emails:', self.recipient_emails_input)
+        layout.addRow('Sender Email:', self.sender_email_input)
+        layout.addRow('SMTP Server:', self.smtp_server_input)
+        layout.addRow('SMTP Port:', self.smtp_port_input)
+        layout.addRow('Email Password:', self.email_password_input)
+        layout.addRow(save_button)
 
-sender_email_label = tk.Label(settings_frame, text="Sender Email")
-sender_email_label.pack(pady=5)
-sender_email_entry = tk.Entry(settings_frame)
-sender_email_entry.pack(pady=5)
-sender_email_entry.insert(0, config['sender_email'])
+        self.config_tab.setLayout(layout)
 
-smtp_server_label = tk.Label(settings_frame, text="SMTP Server")
-smtp_server_label.pack(pady=5)
-smtp_server_entry = tk.Entry(settings_frame)
-smtp_server_entry.pack(pady=5)
-smtp_server_entry.insert(0, config['smtp_server'])
+    def load_config(self):
+        try:
+            with open('config.json', 'r') as config_file:
+                return json.load(config_file)
+        except FileNotFoundError:
+            return {}
 
-smtp_port_label = tk.Label(settings_frame, text="SMTP Port")
-smtp_port_label.pack(pady=5)
-smtp_port_entry = tk.Entry(settings_frame)
-smtp_port_entry.pack(pady=5)
-smtp_port_entry.insert(0, config['smtp_port'])
+    def save_config(self, config):
+        with open('config.json', 'w') as config_file:
+            json.dump(config, config_file, indent=4)
 
-email_password_label = tk.Label(settings_frame, text="Email Password")
-email_password_label.pack(pady=5)
-email_password_entry = tk.Entry(settings_frame, show='*')
-email_password_entry.pack(pady=5)
-email_password_entry.insert(0, config['email_password'])
+    def start_monitoring(self):
+        # Start monitoring logic
+        self.status_label.setText('Status: Monitoring...')
 
-save_button = tk.Button(settings_frame, text="Save Settings", command=save_settings, font=("Arial", 12))
-save_button.pack(pady=10)
+    def restart_services(self):
+        # Restart services logic
+        try:
+            response = requests.get(f"{self.config['panel_url']}/api/restart", headers={'Authorization': f"Bearer {self.config['api_token']}"})
+            if response.status_code == 200:
+                QMessageBox.information(self, 'Success', 'Services restarted successfully')
+            else:
+                QMessageBox.warning(self, 'Failed', 'Failed to restart services')
+        except Exception as e:
+            QMessageBox.critical(self, 'Error', f"An error occurred: {e}")
 
-notebook.add(monitor_frame, text='Monitor')
-notebook.add(settings_frame, text='Settings')
+    def save_settings(self):
+        self.config['panel_url'] = self.panel_url_input.text()
+        self.config['check_interval'] = self.check_interval_input.value()
+        self.config['service_name'] = self.service_name_input.text()
+        self.config['wing_name'] = self.wing_name_input.text()
+        self.config['recipient_emails'] = self.recipient_emails_input.text().split(',')
+        self.config['sender_email'] = self.sender_email_input.text()
+        self.config['smtp_server'] = self.smtp_server_input.text()
+        self.config['smtp_port'] = int(self.smtp_port_input.text())
+        self.config['email_password'] = self.email_password_input.text()
 
-update_status()
-root.mainloop()
+        self.save_config(self.config)
+        QMessageBox.information(self, 'Settings Saved', 'Your settings have been saved.')
+
+if __name__ == '__main__':
+    app = QApplication(sys.argv)
+    ex = MonitorGUI()
+    sys.exit(app.exec_())

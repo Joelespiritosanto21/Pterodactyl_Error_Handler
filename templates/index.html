@@ -1,18 +1,58 @@
 <!doctype html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Jexactyl Monitor</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <title>Jexactyl Monitor Config</title>
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+  <style>
+    body {
+      padding: 20px;
+    }
+  </style>
 </head>
 <body>
-    <div class="container">
-        <h1>Jexactyl Monitor</h1>
-        <p class="status">Status: <span class="{{ 'alert' if status == 'Failed' else '' }}">{{ status }}</span></p>
-        <a href="/restart">Restart Services</a>
-        <br><br>
-        <a href="/settings">Settings</a>
-    </div>
+  <div class="container">
+    <h1>Jexactyl Monitor Configuration</h1>
+    <form action="/update" method="post">
+      <div class="form-group">
+        <label for="panel_url">Panel URL</label>
+        <input type="text" class="form-control" id="panel_url" name="panel_url" value="{{ config['panel_url'] }}">
+      </div>
+      <div class="form-group">
+        <label for="check_interval">Check Interval (seconds)</label>
+        <input type="number" class="form-control" id="check_interval" name="check_interval" value="{{ config['check_interval'] }}">
+      </div>
+      <div class="form-group">
+        <label for="service_name">Service Name</label>
+        <input type="text" class="form-control" id="service_name" name="service_name" value="{{ config['service_name'] }}">
+      </div>
+      <div class="form-group">
+        <label for="wing_name">Wing Name</label>
+        <input type="text" class="form-control" id="wing_name" name="wing_name" value="{{ config['wing_name'] }}">
+      </div>
+      <div class="form-group">
+        <label for="recipient_emails">Recipient Emails (comma-separated)</label>
+        <input type="text" class="form-control" id="recipient_emails" name="recipient_emails" value="{{ ','.join(config['recipient_emails']) }}">
+      </div>
+      <div class="form-group">
+        <label for="sender_email">Sender Email</label>
+        <input type="email" class="form-control" id="sender_email" name="sender_email" value="{{ config['sender_email'] }}">
+      </div>
+      <div class="form-group">
+        <label for="smtp_server">SMTP Server</label>
+        <input type="text" class="form-control" id="smtp_server" name="smtp_server" value="{{ config['smtp_server'] }}">
+      </div>
+      <div class="form-group">
+        <label for="smtp_port">SMTP Port</label>
+        <input type="number" class="form-control" id="smtp_port" name="smtp_port" value="{{ config['smtp_port'] }}">
+      </div>
+      <div class="form-group">
+        <label for="email_password">Email Password</label>
+        <input type="password" class="form-control" id="email_password" name="email_password" value="{{ config['email_password'] }}">
+      </div>
+      <button type="submit" class="btn btn-primary">Save</button>
+    </form>
+  </div>
 </body>
 </html>
