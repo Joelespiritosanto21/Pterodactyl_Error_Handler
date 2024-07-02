@@ -2,82 +2,169 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Jexactyl Monitor</title>
     <style>
         body {
             font-family: Arial, sans-serif;
-            margin: 20px;
+            background-color: #2c2f33;
+            color: #ffffff;
+            margin: 0;
+            padding: 0;
         }
-        .form-group {
-            margin-bottom: 15px;
+        .container {
+            width: 80%;
+            margin: auto;
+            overflow: hidden;
+            padding: 20px;
+        }
+        #console {
+            background-color: #23272a;
+            color: #ffffff;
+            padding: 10px;
+            border-radius: 5px;
+            height: 300px;
+            overflow-y: scroll;
+        }
+        .button {
+            background-color: #7289da;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 4px 2px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .button:hover {
+            background-color: #5b6eae;
+        }
+        #settingsModal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgb(0,0,0);
+            background-color: rgba(0,0,0,0.4);
+        }
+        .modal-content {
+            background-color: #2c2f33;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 40%;
+            border-radius: 5px;
+        }
+        .close {
+            color: #aaaaaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+        .close:hover,
+        .close:focus {
+            color: #ffffff;
+            text-decoration: none;
+            cursor: pointer;
         }
         label {
             display: block;
-            font-weight: bold;
+            margin: 8px 0 4px;
         }
-        input[type="text"], input[type="password"], input[type="number"] {
+        input[type=text], input[type=number], input[type=email], input[type=password] {
             width: 100%;
             padding: 8px;
-            margin-top: 5px;
-        }
-        .button {
-            margin-top: 20px;
-        }
-        pre {
-            background: #f8f8f8;
-            padding: 10px;
+            margin: 8px 0;
+            box-sizing: border-box;
             border: 1px solid #ccc;
+            border-radius: 5px;
+            background-color: #3b3e44;
+            color: #ffffff;
         }
     </style>
 </head>
 <body>
-    <h1>Jexactyl Monitor</h1>
+    <div class="container">
+        <h1>Jexactyl Monitor</h1>
+        <button class="button" id="settingsButton">Settings</button>
+        <div id="console"></div>
+        <button class="button" id="clearConsoleButton">Clear Console</button>
+    </div>
 
-    <h2>Logs</h2>
-    <pre>{{ logs }}</pre>
+    <div id="settingsModal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <form method="POST" action="{{ url_for('save') }}">
+                <label for="panel_url">Panel URL:</label>
+                <input type="text" id="panel_url" name="panel_url" value="{{ config.panel_url }}" required><br>
+                <label for="check_interval">Check Interval:</label>
+                <input type="number" id="check_interval" name="check_interval" value="{{ config.check_interval }}" required><br>
+                <label for="service_name">Service Name:</label>
+                <input type="text" id="service_name" name="service_name" value="{{ config.service_name }}" required><br>
+                <label for="wing_name">Wing Name:</label>
+                <input type="text" id="wing_name" name="wing_name" value="{{ config.wing_name }}" required><br>
+                <label for="recipient_emails">Recipient Emails:</label>
+                <input type="text" id="recipient_emails" name="recipient_emails" value="{{ config.recipient_emails | join(',') }}" required><br>
+                <label for="sender_email">Sender Email:</label>
+                <input type="email" id="sender_email" name="sender_email" value="{{ config.sender_email }}" required><br>
+                <label for="smtp_server">SMTP Server:</label>
+                <input type="text" id="smtp_server" name="smtp_server" value="{{ config.smtp_server }}" required><br>
+                <label for="smtp_port">SMTP Port:</label>
+                <input type="number" id="smtp_port" name="smtp_port" value="{{ config.smtp_port }}" required><br>
+                <label for="email_password">Email Password:</label>
+                <input type="password" id="email_password" name="email_password" value="{{ config.email_password }}" required><br>
+                <button type="submit" class="button">Save</button>
+            </form>
+        </div>
+    </div>
 
-    <h2>Settings</h2>
-    <form action="/save" method="post">
-        <div class="form-group">
-            <label for="panel_url">Panel URL</label>
-            <input type="text" id="panel_url" name="panel_url" value="{{ config['panel_url'] }}">
-        </div>
-        <div class="form-group">
-            <label for="check_interval">Check Interval (seconds)</label>
-            <input type="number" id="check_interval" name="check_interval" value="{{ config['check_interval'] }}">
-        </div>
-        <div class="form-group">
-            <label for="service_name">Service Name</label>
-            <input type="text" id="service_name" name="service_name" value="{{ config['service_name'] }}">
-        </div>
-        <div class="form-group">
-            <label for="wing_name">Wing Name</label>
-            <input type="text" id="wing_name" name="wing_name" value="{{ config['wing_name'] }}">
-        </div>
-        <div class="form-group">
-            <label for="recipient_emails">Recipient Emails</label>
-            <input type="text" id="recipient_emails" name="recipient_emails" value="{{ ','.join(config['recipient_emails']) }}">
-        </div>
-        <div class="form-group">
-            <label for="sender_email">Sender Email</label>
-            <input type="text" id="sender_email" name="sender_email" value="{{ config['sender_email'] }}">
-        </div>
-        <div class="form-group">
-            <label for="smtp_server">SMTP Server</label>
-            <input type="text" id="smtp_server" name="smtp_server" value="{{ config['smtp_server'] }}">
-        </div>
-        <div class="form-group">
-            <label for="smtp_port">SMTP Port</label>
-            <input type="number" id="smtp_port" name="smtp_port" value="{{ config['smtp_port'] }}">
-        </div>
-        <div class="form-group">
-            <label for="email_password">Email Password</label>
-            <input type="password" id="email_password" name="email_password" value="{{ config['email_password'] }}">
-        </div>
-        <div class="button">
-            <button type="submit">Save Settings</button>
-        </div>
-    </form>
+    <script>
+        const settingsButton = document.getElementById('settingsButton');
+        const settingsModal = document.getElementById('settingsModal');
+        const closeButton = document.querySelector('.close');
+
+        settingsButton.onclick = function() {
+            settingsModal.style.display = "block";
+        }
+
+        closeButton.onclick = function() {
+            settingsModal.style.display = "none";
+        }
+
+        window.onclick = function(event) {
+            if (event.target == settingsModal) {
+                settingsModal.style.display = "none";
+            }
+        }
+
+        const clearConsoleButton = document.getElementById('clearConsoleButton');
+        const consoleDiv = document.getElementById('console');
+
+        clearConsoleButton.onclick = function() {
+            fetch('/clear_logs', { method: 'POST' })
+                .then(response => {
+                    if (response.ok) {
+                        consoleDiv.innerHTML = '';
+                    }
+                });
+        }
+
+        function fetchLogs() {
+            fetch('/logs')
+                .then(response => response.json())
+                .then(data => {
+                    consoleDiv.innerHTML = data.logs.join('<br>');
+                    consoleDiv.scrollTop = consoleDiv.scrollHeight;
+                });
+        }
+
+        setInterval(fetchLogs, 5000);
+    </script>
 </body>
 </html>

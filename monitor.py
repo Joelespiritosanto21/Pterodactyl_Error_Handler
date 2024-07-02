@@ -1,50 +1,67 @@
-import time
-import requests
-import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
+from flask import Flask, request, render_template, redirect, url_for, jsonify
+import json
+import os
+import threading
 
-def send_email(config, subject, body):
-    msg = MIMEMultipart()
-    msg['From'] = config['sender_email']
-    msg['To'] = ", ".join(config['recipient_emails'])
-    msg['Subject'] = subject
+app = Flask(__name__)
 
-    msg.attach(MIMEText(body, 'plain'))
+config_path = 'config.json'
 
+def load_config():
     try:
-        with smtplib.SMTP(config['smtp_server'], config['smtp_port']) as server:
-            server.starttls()
-            server.login(config['sender_email'], config['email_password'])
-            server.send_message(msg)
-        log_message("Email sent successfully.")
-    except Exception as e:
-        log_message(f"Failed to send email: {e}")
+        with open(config_path, 'r') as config_file:
+            return json.load(config_file)
+    except FileNotFoundError:
+        return {}
 
-def restart_services(config):
-    log_message("Restarting Jexactyl services...")
-    subject = "Jexactyl Services Restarted"
-    body = "The Jexactyl services were restarted due to an error or unresponsive state."
-    send_email(config, subject, body)
+def save_config(config):
+    with open(config_path, 'w') as config_file:
+        json.dump(config, config_file, indent=4)
 
-def check_jexactyl_status(config):
-    while True:
-        try:
-            response = requests.get(config['panel_url'])
-            if response.status_code == 200:
-                log_message("Jexactyl is running smoothly.")
-            else:
-                log_message("Jexactyl seems to be having issues.")
-                restart_services(config)
-        except requests.RequestException as e:
-            log_message(f"Error connecting to Jexactyl: {e}")
-            restart_services(config)
-        time.sleep(config.get('check_interval', 60))
+def get_log_content():
+    if os.path.exists('monitor.log'):
+        with open('monitor.log', 'r') as log_file:
+            return log_file.read()
+    return "No logs available."
 
-def start_monitoring(config):
-    log_message("Monitoring started.")
-    check_jexactyl_status(config)
+def clear_logs():
+    if os.path.exists('monitor.log'):
+        open('monitor.log', 'w').close()
 
-def log_message(message):
-    with open('monitor.log', 'a') as log_file:
-        log_file.write(f"{time.strftime('%Y-%m-%d %H:%M:%S')} - {message}\n")
+@app.route('/')
+def index():
+    config = load_config()
+    logs = get_log_content()
+    return render_template('index.html', config=config, logs=logs)
+
+@app.route('/save', methods=['POST'])
+def save():
+    config = {
+        'panel_url': request.form['panel_url'],
+        'check_interval': int(request.form['check_interval']),
+        'service_name': request.form['service_name'],
+        'wing_name': request.form['wing_name'],
+        'recipient_emails': request.form['recipient_emails'].split(','),
+        'sender_email': request.form['sender_email'],
+        'smtp_server': request.form['smtp_server'],
+        'smtp_port': int(request.form['smtp_port']),
+        'email_password': request.form['email_password']
+    }
+    save_config(config)
+    return redirect(url_for('index'))
+
+@app.route('/logs')
+def logs():
+    logs = get_log_content()
+    return jsonify({'logs': logs})
+
+@app.route('/clear_logs', methods=['POST'])
+def clear_logs_route():
+    clear_logs()
+    return jsonify({'status': 'Logs cleared'})
+
+def start_web_server():
+    app.run(debug=False, port=5000)
+
+if __name__ == "__main__":
+    start_web_server()
