@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <title>Jexactyl Monitor</title>
@@ -11,12 +12,14 @@
             margin: 0;
             padding: 0;
         }
+
         .container {
             width: 80%;
             margin: auto;
             overflow: hidden;
             padding: 20px;
         }
+
         #console {
             background-color: #23272a;
             color: #ffffff;
@@ -25,6 +28,7 @@
             height: 300px;
             overflow-y: scroll;
         }
+
         .button {
             background-color: #7289da;
             color: white;
@@ -38,9 +42,11 @@
             border-radius: 5px;
             cursor: pointer;
         }
+
         .button:hover {
             background-color: #5b6eae;
         }
+
         #settingsModal {
             display: none;
             position: fixed;
@@ -50,9 +56,10 @@
             width: 100%;
             height: 100%;
             overflow: auto;
-            background-color: rgb(0,0,0);
-            background-color: rgba(0,0,0,0.4);
+            background-color: rgb(0, 0, 0);
+            background-color: rgba(0, 0, 0, 0.4);
         }
+
         .modal-content {
             background-color: #2c2f33;
             margin: 15% auto;
@@ -61,23 +68,30 @@
             width: 40%;
             border-radius: 5px;
         }
+
         .close {
             color: #aaaaaa;
             float: right;
             font-size: 28px;
             font-weight: bold;
         }
+
         .close:hover,
         .close:focus {
             color: #ffffff;
             text-decoration: none;
             cursor: pointer;
         }
+
         label {
             display: block;
             margin: 8px 0 4px;
         }
-        input[type=text], input[type=number], input[type=email], input[type=password] {
+
+        input[type=text],
+        input[type=number],
+        input[type=email],
+        input[type=password] {
             width: 100%;
             padding: 8px;
             margin: 8px 0;
@@ -89,6 +103,7 @@
         }
     </style>
 </head>
+
 <body>
     <div class="container">
         <h1>Jexactyl Monitor</h1>
@@ -104,21 +119,25 @@
                 <label for="panel_url">Panel URL:</label>
                 <input type="text" id="panel_url" name="panel_url" value="{{ config.panel_url }}" required><br>
                 <label for="check_interval">Check Interval:</label>
-                <input type="number" id="check_interval" name="check_interval" value="{{ config.check_interval }}" required><br>
+                <input type="number" id="check_interval" name="check_interval" value="{{ config.check_interval }}"
+                    required><br>
                 <label for="service_name">Service Name:</label>
                 <input type="text" id="service_name" name="service_name" value="{{ config.service_name }}" required><br>
                 <label for="wing_name">Wing Name:</label>
                 <input type="text" id="wing_name" name="wing_name" value="{{ config.wing_name }}" required><br>
                 <label for="recipient_emails">Recipient Emails:</label>
-                <input type="text" id="recipient_emails" name="recipient_emails" value="{{ config.recipient_emails | join(',') }}" required><br>
+                <input type="text" id="recipient_emails" name="recipient_emails"
+                    value="{{ config.recipient_emails | join(',') }}" required><br>
                 <label for="sender_email">Sender Email:</label>
-                <input type="email" id="sender_email" name="sender_email" value="{{ config.sender_email }}" required><br>
+                <input type="email" id="sender_email" name="sender_email" value="{{ config.sender_email }}"
+                    required><br>
                 <label for="smtp_server">SMTP Server:</label>
                 <input type="text" id="smtp_server" name="smtp_server" value="{{ config.smtp_server }}" required><br>
                 <label for="smtp_port">SMTP Port:</label>
                 <input type="number" id="smtp_port" name="smtp_port" value="{{ config.smtp_port }}" required><br>
                 <label for="email_password">Email Password:</label>
-                <input type="password" id="email_password" name="email_password" value="{{ config.email_password }}" required><br>
+                <input type="password" id="email_password" name="email_password" value="{{ config.email_password }}"
+                    required><br>
                 <button type="submit" class="button">Save</button>
             </form>
         </div>
@@ -129,15 +148,15 @@
         const settingsModal = document.getElementById('settingsModal');
         const closeButton = document.querySelector('.close');
 
-        settingsButton.onclick = function() {
+        settingsButton.onclick = function () {
             settingsModal.style.display = "block";
         }
 
-        closeButton.onclick = function() {
+        closeButton.onclick = function () {
             settingsModal.style.display = "none";
         }
 
-        window.onclick = function(event) {
+        window.onclick = function (event) {
             if (event.target == settingsModal) {
                 settingsModal.style.display = "none";
             }
@@ -146,7 +165,7 @@
         const clearConsoleButton = document.getElementById('clearConsoleButton');
         const consoleDiv = document.getElementById('console');
 
-        clearConsoleButton.onclick = function() {
+        clearConsoleButton.onclick = function () {
             fetch('/clear_logs', { method: 'POST' })
                 .then(response => {
                     if (response.ok) {
@@ -164,7 +183,8 @@
                 });
         }
 
-        setInterval(fetchLogs, 5000);
+        setInterval(fetchLogs, 500);
     </script>
 </body>
+
 </html>
